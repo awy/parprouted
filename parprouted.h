@@ -1,5 +1,6 @@
 /* parprouted: ProxyARP routing daemon. 
  * (C) 2008 Vladimir Ivaschenko <vi@maks.net>
+ * Copyright (C) 2019 Lenbrook Industries Limited
  *
  * This application is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -28,7 +29,7 @@
 
 #define MAX_RQ_SIZE 50	/* maximum size of request queue */
 
-#define VERSION "0.7"
+#define VERSION "bluos_1.0"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -49,32 +50,18 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-typedef struct arptab_entry {
-    struct in_addr ipaddr_ia;
-    char hwaddr[ARP_TABLE_ENTRY_LEN];
-    char ifname[ARP_TABLE_ENTRY_LEN];
-    time_t tstamp;
-    int route_added;
-    int incomplete;
-    int want_route;
-    struct arptab_entry *next;
-} ARPTAB_ENTRY;
-
 extern int debug;
 extern int verbose;
 
-extern int option_arpperm;
+extern int g_perform_shutdown;
 
-extern ARPTAB_ENTRY **arptab;
-extern pthread_mutex_t arptab_mutex;
-extern pthread_mutex_t req_queue_mutex;
+extern char * g_ifaces[MAX_IFACES];
+extern int g_last_iface_idx;
+extern int g_manage_routes;
+extern int g_proxy_arp;
 
-extern char * ifaces[MAX_IFACES];
-extern int last_iface_idx;
+extern void *arp(void *arg);
+extern void arp_req(const char *ifname, const struct in_addr remaddr, int gratuitous);
+extern void manage_route(const struct in_addr address, const int ifx);
+extern void remove_routes(int idx);
 
-extern void *arp(char *ifname);
-extern void refresharp(ARPTAB_ENTRY *list);
-extern void arp_req(char *ifname, struct in_addr remaddr, int gratuitous);
-
-extern void parseproc();
-extern void processarp(int cleanup);

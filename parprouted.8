@@ -134,34 +134,31 @@
 \&\fBparprouted\fR \- Proxy ARP IP bridging daemon
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-\&\fBparprouted\fR [\fB\-d\fR] [\fB\-p\fR] \fBinterface\fR [\fBinterface\fR]
+\&\fBparprouted\fR [\fB\-d\fR] [\fB\-P\fR | \fB--no-proxy\fR] [\fB\-R\fR | \fB--no-routes\fR] \fBinterface0\fR [\fBinterface\fR...]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
-parprouted is a daemon for transparent \s-1IP\s0 (Layer 3) proxy \s-1ARP\s0 bridging. 
+parprouted is a daemon for transparent \s-1IP\s0 (Layer 3) proxy \s-1ARP\s0 bridging and routing.
 Unlike standard bridging, proxy \s-1ARP\s0 bridging allows to bridge Ethernet 
 networks behind wireless nodes. Normal L2 bridging does not work between 
 wireless nodes because wireless does not know about \s-1MAC\s0 addresses used 
 in the wired Ethernet networks. Also this daemon is useful
 for making transparent firewalls.
 .PP
-The daemon listens for incoming \s-1ARP\s0 requests, and in case the location 
-of the requested \s-1IP\s0 address is unknown, forwards them to other interfaces, 
-as well as updates kernel \s-1ARP\s0 table with the received replies. When 
-necessary, the daemon generates an \s-1ARP\s0 reply itself, which causes the 
-stations to send traffic to the host daemon is running on. By 
-automatically adding appropriate /32 routes to Linux kernel \s-1IP\s0 routing 
-table for the hosts learned via \s-1ARP\s0, daemon ensures that the Linux kernel 
-will be able to route the packets to the destination host when it receives 
-them without any need routing/subnetting manually.  
+The daemon listens for incoming \s-1ARP\s0 requests and forwards them to other interfaces.
+It also listens for \s-1ARP\s0 replies, and in case the reply matches an outstanding
+forwarded request then it forwards the reply, using the local hardware address as the source,
+which causes the stations to send traffic to the host that the daemon is running on.
 .PP
+If a host is discovered to be present on \fBinterface0\fR,
+by virtue of inspecting received ARP request and reply packets,
+then it adds an appropriate /32 route to the Linux kernel \s-1IP\s0 routing 
+table.
+If a host is discovered to be present on another interface then any route on \fBinterface0\fR
+is removed.
 All routes entered by the daemon have a metric of 50. 
 .PP
-Unless you use \fB\-p\fR switch, all entries in the \s-1ARP\s0 table will be
-refreshed (rechecked by sending \s-1ARP\s0 requests) every 50 seconds. This
-keeps them from being expired by kernel.
-.PP
-Normally it takes about 60 ms for a bridge to update all its tables and
-start sending packets to the destination.
+For hosts for which routes have been established the daemon probes them every 50 seconds
+using ARP. The routes for unresponsive hosts are timed out and removed.
 .SH "REQUIREMENTS"
 .IX Header "REQUIREMENTS"
 This daemon can be used for unicast traffic only. I.e., \s-1DHCP\s0 is not supported.
@@ -175,8 +172,7 @@ The system should have correct default route.
 .PP
 parprouted requires \*(L"ip\*(R" program from iproute2 tools to be installed in 
 /sbin. If it is installed in another location, please replace \*(L"/sbin/ip\*(R" 
-occurances in the source with the correct path. As well you should have
-proc filesystem mounted in /proc because the daemon uses /proc/net/arp.
+occurances in the source with the correct path.
 .PP
 parprouted is designed for and tested only with Linux 2.4.x kernels.
 .SH "OPTIONS"
@@ -190,14 +186,16 @@ The daemon accepts the following switches:
 will not go to background and will print additional debugging information to 
 stdout/stderr.
 .PP
-\&\fB\-p\fR, which makes all \s-1ARP\s0 entries to be permanent. This will also
-result in that \s-1ARP\s0 tables will not be refreshed by \s-1ARP\s0 pings.
+\&\fB\-P\fR or \fB\--no-proxy\fR, disables the proxy-ARP functionality.
+.PP
+\&\fB\-R\fR or \fB\--no-routes\fR, disables the route-management functionality.
 .SH "EXAMPLE"
 .IX Header "EXAMPLE"
-To bridge between wlan0 and eth0: \fBparprouted eth0 wlan0\fR
+To bridge between wlan0 and eth0 where wlan0 is the main interface with subnet and/or default routes: \fBparprouted eth0 wlan0\fR
 .SH "AUTHOR"
 .IX Header "AUTHOR"
 .Vb 2
 \& (C) 2004, Vladimir Ivaschenko <vi@maks.net>
 \& http://www.hazard.maks.net
+\& Copyright (C) 2019 Lenbrook Industries Limited
 .Ve
